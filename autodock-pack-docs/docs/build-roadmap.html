@@ -1,0 +1,410 @@
+<title>AutoDock Build Roadmap</title>
+<meta name="description" content="Step-by-step plan: Mac M4 software prototype, real RK3588 hardware validation gate, and the production device model + pilot rollout for AutoDock & Pack." />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#F2F5F3; --paper-raised:#FFFFFF;
+    --ink:#15211D; --ink-soft:#4B5A55;
+    --line:rgba(21,33,29,0.14); --line-strong:rgba(21,33,29,0.28);
+    --accent:#0E7C6B; --accent-ink:#083E36;
+    --accent-soft:rgba(14,124,107,0.10); --accent-soft-strong:rgba(14,124,107,0.18);
+    --track-b:#2563A8; --track-b-soft:rgba(37,99,168,0.12);
+    --money:#B45309; --money-soft:rgba(180,83,9,0.12);
+    --warn:#B4231F; --warn-soft:rgba(180,35,31,0.10); --warn-line:rgba(180,35,31,0.32);
+    --code-bg:rgba(21,33,29,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1715; --paper-raised:#16211D;
+      --ink:#E7EEEA; --ink-soft:#9FB0A9;
+      --line:rgba(231,238,234,0.14); --line-strong:rgba(231,238,234,0.26);
+      --accent:#3FD9C1; --accent-ink:#BAF3E7;
+      --accent-soft:rgba(63,217,193,0.12); --accent-soft-strong:rgba(63,217,193,0.20);
+      --track-b:#7BB3EA; --track-b-soft:rgba(123,179,234,0.14);
+      --money:#F5A544; --money-soft:rgba(245,165,68,0.14);
+      --warn:#F0827D; --warn-soft:rgba(240,130,125,0.12); --warn-line:rgba(240,130,125,0.35);
+      --code-bg:rgba(231,238,234,0.07);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1715; --paper-raised:#16211D;
+    --ink:#E7EEEA; --ink-soft:#9FB0A9;
+    --line:rgba(231,238,234,0.14); --line-strong:rgba(231,238,234,0.26);
+    --accent:#3FD9C1; --accent-ink:#BAF3E7;
+    --accent-soft:rgba(63,217,193,0.12); --accent-soft-strong:rgba(63,217,193,0.20);
+    --track-b:#7BB3EA; --track-b-soft:rgba(123,179,234,0.14);
+    --money:#F5A544; --money-soft:rgba(245,165,68,0.14);
+    --warn:#F0827D; --warn-soft:rgba(240,130,125,0.12); --warn-line:rgba(240,130,125,0.35);
+    --code-bg:rgba(231,238,234,0.07);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  ::selection{ background:var(--accent-soft-strong); }
+  .wrap{ max-width:960px; margin:0 auto; padding:0 24px 120px; }
+
+  header.hero{ border-bottom:1px solid var(--line); padding:56px 0 32px; margin-bottom:8px; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .eyebrow::before{ content:""; width:7px; height:7px; background:var(--accent); display:inline-block; border-radius:1px; transform:rotate(45deg); }
+  h1{ font-family:'IBM Plex Sans Condensed', sans-serif; font-weight:700; font-size:clamp(30px,4.6vw,44px); line-height:1.08; letter-spacing:-0.01em; margin:0 0 16px; text-wrap:balance; }
+  .hero p.lede{ font-size:18px; color:var(--ink-soft); max-width:64ch; margin:0; }
+
+  nav.toc{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin:32px 0 56px; font-family:'IBM Plex Mono', monospace; font-size:13px; }
+  nav.toc a{ background:var(--paper-raised); color:var(--ink); text-decoration:none; padding:12px 14px; display:flex; gap:8px; }
+  nav.toc a:hover{ background:var(--accent-soft); }
+  nav.toc span.n{ color:var(--accent); font-weight:600; }
+
+  section{ padding:52px 0; border-bottom:1px solid var(--line); scroll-margin-top:24px; }
+  section:last-of-type{ border-bottom:none; }
+  .section-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:22px; }
+  .section-num{ font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); font-weight:600; white-space:nowrap; }
+  h2{ font-family:'IBM Plex Sans Condensed', sans-serif; font-weight:700; font-size:26px; letter-spacing:-0.005em; margin:0; text-wrap:balance; }
+  h3{ font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:16px; margin:0 0 4px; }
+  p{ margin:0 0 14px; max-width:72ch; }
+  .muted{ color:var(--ink-soft); }
+  strong{ font-weight:600; }
+
+  /* ---- track badges ---- */
+  .badge{ display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:2px; }
+  .badge.a{ background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--accent-soft-strong); }
+  .badge.b{ background:var(--track-b-soft); color:var(--track-b); border:1px solid rgba(37,99,168,0.3); }
+  .badge.c{ background:var(--money-soft); color:var(--money); border:1px solid rgba(180,83,9,0.3); }
+  .badge.gate{ background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn-line); }
+
+  /* ---- phase cards ---- */
+  .phase{ border:1px solid var(--line); border-radius:4px; background:var(--paper-raised); padding:22px 24px; margin-bottom:16px; }
+  .phase-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .phase-when{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); }
+
+  .steps{ list-style:none; margin:14px 0 0; padding:0; }
+  .steps li{ position:relative; padding:0 0 12px 28px; font-size:14.5px; }
+  .steps li:last-child{ padding-bottom:0; }
+  .steps li::before{ content:"□"; position:absolute; left:0; top:0; color:var(--accent); font-family:'IBM Plex Mono',monospace; font-size:15px; }
+  .steps li b{ font-weight:600; }
+  .steps li span.detail{ display:block; color:var(--ink-soft); font-size:13.8px; margin-top:2px; }
+
+  .callout{ border-radius:3px; padding:14px 16px; margin:14px 0; font-size:14px; }
+  .callout.info{ background:var(--accent-soft); border:1px solid var(--accent-soft-strong); }
+  .callout.warn{ background:var(--warn-soft); border:1px solid var(--warn-line); }
+  .callout .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; display:block; margin-bottom:5px; }
+  .callout.info .label{ color:var(--accent-ink); }
+  .callout.warn .label{ color:var(--warn); }
+
+  /* ---- gantt ---- */
+  figure{ margin:24px 0 0; }
+  figure svg{ max-width:100%; height:auto; display:block; }
+  .frame{ border:1px solid var(--line); background:var(--paper-raised); border-radius:4px; padding:20px 12px; }
+  figcaption{ font-size:13px; color:var(--ink-soft); margin-top:10px; font-family:'IBM Plex Mono', monospace; }
+  svg text{ font-family:'IBM Plex Mono', monospace; }
+  svg .axis{ font-size:11px; fill:var(--ink-soft); }
+  svg .row-lbl{ font-size:12px; fill:var(--ink); font-weight:600; text-anchor:end; }
+  svg .bar-lbl{ font-size:11px; fill:var(--paper-raised); font-weight:600; }
+
+  /* ---- tables ---- */
+  .tbl-wrap{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:14.5px; margin:8px 0 4px; }
+  caption{ text-align:left; font-size:12.5px; color:var(--ink-soft); margin-bottom:8px; font-family:'IBM Plex Mono',monospace; }
+  th{ text-align:left; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; padding:0 12px 10px 0; border-bottom:1px solid var(--line-strong); white-space:nowrap; }
+  td{ padding:11px 12px 11px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:1px solid var(--line-strong); }
+  td.tag{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--accent-ink); white-space:nowrap; }
+  td.tbd{ color:var(--money); font-family:'IBM Plex Mono',monospace; font-size:12.5px; }
+
+  .inline-code{ font-family:'IBM Plex Mono', monospace; background:var(--code-bg); padding:1px 6px; border-radius:3px; font-size:0.88em; }
+
+  ul.plain{ margin:0 0 14px; padding-left:20px; }
+  ul.plain li{ margin-bottom:8px; max-width:70ch; }
+
+  footer{ padding:40px 0 0; color:var(--ink-soft); font-size:13px; font-family:'IBM Plex Mono', monospace; }
+
+  @media (max-width:640px){
+    nav.toc{ grid-template-columns:1fr 1fr; }
+    .section-head{ flex-direction:column; gap:4px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">HandsOffLabs · AutoDock &amp; Pack · Build Plan</div>
+    <h1>From Mac M4 prototype to a device you can install in a store</h1>
+    <p class="lede">Three connected stretches of work: prove the logic on your M4, prove the numbers on real RK3588 hardware, then lock the production device and run the Bengaluru pilot. Each phase lists exactly what to do next.</p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <a href="#howtoread"><span class="n">00</span> How to read this</a>
+    <a href="#timeline"><span class="n">01</span> Timeline</a>
+    <a href="#tracka"><span class="n">02</span> M4 prototype</a>
+    <a href="#trackb"><span class="n">03</span> Hardware gate</a>
+    <a href="#trackc"><span class="n">04</span> Production build</a>
+    <a href="#device"><span class="n">05</span> Device model</a>
+    <a href="#risks"><span class="n">06</span> Open items</a>
+  </nav>
+
+  <section id="howtoread">
+    <div class="section-head"><span class="section-num">00</span><h2>How to read this plan</h2></div>
+    <p>Three tracks, run mostly back-to-back with one deliberate overlap:</p>
+    <ul class="plain">
+      <li><span class="badge a">Track A</span> — everything you can build and test today on the Mac M4: recognition logic, SKU onboarding, the lookalike-rice model, the checkout flow. This proves the <em>software is correct</em>.</li>
+      <li><span class="badge b">Track B</span> — the same pipeline ported onto an actual RK3588 board. This proves the <em>numbers are real</em>, since M4 latency does not predict RK3588 latency. It ends in a go/no-go gate before you commit to a custom board.</li>
+      <li><span class="badge c">Track C</span> — the production device: carrier board, packing mechanics, certification, cloud backend, and the live pilot.</li>
+    </ul>
+    <p class="muted">Track B starts in week 3, once Track A has something worth porting — you don't wait for Track A to fully finish.</p>
+  </section>
+
+  <section id="timeline">
+    <div class="section-head"><span class="section-num">01</span><h2>12-week timeline</h2></div>
+    <figure>
+      <div class="frame">
+        <svg viewBox="0 0 960 300" role="img" aria-label="Gantt chart: M4 prototype runs weeks 1 to 5, hardware bring-up on real RK3588 runs weeks 3 to 6 ending in a go/no-go gate, then carrier board and packing mechanics run weeks 7 to 9, certification and cloud software run weeks 9 to 11 in parallel, and the live Bengaluru pilot runs weeks 10 to 12.">
+          <!-- week axis -->
+          <g class="axis">
+            <line x1="170" y1="40" x2="930" y2="40" stroke="currentColor" stroke-width="1"></line>
+            <!-- 12 week ticks -->
+          </g>
+          <g stroke="var(--line-strong)" stroke-width="1">
+            <line x1="170" y1="32" x2="170" y2="255"></line>
+            <line x1="233" y1="32" x2="233" y2="255"></line>
+            <line x1="297" y1="32" x2="297" y2="255"></line>
+            <line x1="360" y1="32" x2="360" y2="255"></line>
+            <line x1="423" y1="32" x2="423" y2="255"></line>
+            <line x1="487" y1="32" x2="487" y2="255"></line>
+            <line x1="550" y1="32" x2="550" y2="255"></line>
+            <line x1="613" y1="32" x2="613" y2="255"></line>
+            <line x1="677" y1="32" x2="677" y2="255"></line>
+            <line x1="740" y1="32" x2="740" y2="255"></line>
+            <line x1="803" y1="32" x2="803" y2="255"></line>
+            <line x1="867" y1="32" x2="867" y2="255"></line>
+            <line x1="930" y1="32" x2="930" y2="255"></line>
+          </g>
+          <g class="axis" text-anchor="middle">
+            <text x="201" y="24">W1</text><text x="265" y="24">W2</text><text x="328" y="24">W3</text>
+            <text x="391" y="24">W4</text><text x="455" y="24">W5</text><text x="518" y="24">W6</text>
+            <text x="581" y="24">W7</text><text x="645" y="24">W8</text><text x="708" y="24">W9</text>
+            <text x="771" y="24">W10</text><text x="835" y="24">W11</text><text x="898" y="24">W12</text>
+          </g>
+
+          <!-- row labels -->
+          <text x="160" y="62" class="row-lbl">M4 prototype</text>
+          <text x="160" y="102" class="row-lbl">RK3588 bring-up</text>
+          <text x="160" y="142" class="row-lbl">Carrier + packing</text>
+          <text x="160" y="182" class="row-lbl">Cert + cloud</text>
+          <text x="160" y="222" class="row-lbl">Bengaluru pilot</text>
+
+          <!-- bars: x=170 is week1 start, each week = 63.3px -->
+          <rect x="170" y="46" width="317" height="24" rx="2" fill="var(--accent)"></rect>
+          <text x="328" y="63" text-anchor="middle" class="bar-lbl">logic + lookalike model, W1&#8211;5</text>
+
+          <rect x="297" y="86" width="253" height="24" rx="2" fill="var(--track-b)"></rect>
+          <text x="423" y="103" text-anchor="middle" class="bar-lbl">port to real chip, W3&#8211;6</text>
+
+          <rect x="550" y="126" width="190" height="24" rx="2" fill="var(--money)"></rect>
+          <text x="645" y="143" text-anchor="middle" class="bar-lbl">device build, W7&#8211;9</text>
+
+          <rect x="677" y="166" width="190" height="24" rx="2" fill="var(--money)" opacity="0.6"></rect>
+          <text x="772" y="183" text-anchor="middle" class="bar-lbl">parallel, W9&#8211;11</text>
+
+          <rect x="740" y="206" width="190" height="24" rx="2" fill="var(--accent-ink)"></rect>
+          <text x="835" y="223" text-anchor="middle" class="bar-lbl">1,000 checkouts, W10&#8211;12</text>
+
+          <!-- gate line -->
+          <line x1="550" y1="32" x2="550" y2="255" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="4,3"></line>
+          <text x="550" y="272" text-anchor="middle" class="axis" fill="var(--warn)" style="fill:var(--warn)">GO / NO-GO GATE</text>
+        </svg>
+      </div>
+      <figcaption>Fig 1 — Track A and B overlap weeks 3&#8211;6; production work (Track C) only begins once the week-6 gate is cleared.</figcaption>
+    </figure>
+  </section>
+
+  <section id="tracka">
+    <div class="section-head"><span class="section-num">02</span><h2><span class="badge a">Track A</span> Local M4 prototype</h2></div>
+    <p>Goal: prove the <em>logic</em> is correct — recognition, onboarding, promotions, offline resilience — using the Mac M4 as a stand-in compute box. None of the latency numbers from this track are final; they're a baseline to compare against Track B.</p>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A0 &middot; Environment setup</h3><span class="phase-when">Day 1&#8211;2</span></div>
+      <ol class="steps">
+        <li><b>Create the ARM64 conda environment</b> and install MLX, PyTorch+MPS, FAISS-CPU, OpenCV, transformers, mlx-vlm — this is the same stack your blueprint already scripted.</li>
+        <li><b>Load Qwen2-VL-2B (4-bit) via mlx-vlm</b> once, just to confirm the model loads and generates on the M4's unified memory.</li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A1 &middot; Bridge real sensors into the M4</h3><span class="phase-when">Day 2&#8211;4</span></div>
+      <ol class="steps">
+        <li><b>Wire a TI ADS1232 breakout + load cell to a spare ESP32</b><span class="detail">stream weight readings to the Mac over USB-serial (pyserial) — testing against real sensor noise beats testing against a hand-typed number every time.</span></li>
+        <li><b>Get one or two USB UVC cameras (or a capture card feeding the actual M12 lens modules)</b><span class="detail">the M4 has no MIPI-CSI input, so this is the stand-in for the dual Sony IMX415/OV5647 cameras until the carrier board exists.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A2 &middot; Core recognition pipeline</h3><span class="phase-when">Week 1&#8211;2</span></div>
+      <ol class="steps">
+        <li><b>Weight-gate trigger</b><span class="detail">fire only on ΔW &gt; 15g from the live serial stream.</span></li>
+        <li><b>Weight pre-filter</b><span class="detail">narrow your local SKU catalog (JSON) to items within tolerance of the measured weight.</span></li>
+        <li><b>Fast path</b><span class="detail">a lightweight pretrained embedding model (MobileNetV3/V4 via PyTorch+MPS) turns the live camera frame into a vector, matched against a local FAISS index.</span></li>
+        <li><b>Deep path</b><span class="detail">Qwen2-VL fallback when the fast path isn't confident.</span></li>
+        <li><b>Log everything</b><span class="detail">which path fired, confidence, per-stage timing — into a local SQLite table. This becomes your Track A benchmark report.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A3 &middot; SKU onboarding tool</h3><span class="phase-when">Week 2</span></div>
+      <ol class="steps">
+        <li><b>Build a small capture script</b><span class="detail">4 photos + weight per SKU → embedding → append to the local FAISS index + catalog metadata.</span></li>
+        <li><b>Onboard 15&#8211;20 test SKUs</b><span class="detail">mix packaged snacks, dals, and all four rice types — you need a realistic catalog before the next phase means anything.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A4 &middot; Lookalike-rice model</h3><span class="phase-when">Week 3&#8211;4</span></div>
+      <ol class="steps">
+        <li><b>Capture 50&#8211;100 labeled photos per rice variety</b><span class="detail">Basmati, Sona Masoori, plain rice, idli rice — vary fill level, angle, lighting.</span></li>
+        <li><b>Add the density feature</b><span class="detail">weight ÷ estimated tray-fill volume, computed alongside the image.</span></li>
+        <li><b>Baseline test</b><span class="detail">run the off-the-shelf embedding + density fusion, build a confusion matrix across the four varieties.</span></li>
+        <li><b>Fine-tune if the baseline is weak</b><span class="detail">contrastive/triplet fine-tuning on the captured set, still on the M4 via PyTorch+MPS. Target: &gt;95% top-1 accuracy among the four varieties before moving on.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A5 &middot; Checkout flow + promotions simulation</h3><span class="phase-when">Week 4</span></div>
+      <ol class="steps">
+        <li><b>Minimal local web UI</b><span class="detail">weigh → identify (show candidate + confidence) → apply a promotions JSON rule file → mock payment → print a "pack" signal.</span></li>
+        <li><b>Exercise discount and free-item rules</b><span class="detail">% off, buy-X-get-Y, ₹0 loyalty override — against the same rule format planned for production.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>A6 &middot; Offline resilience + benchmark writeup</h3><span class="phase-when">Week 5</span></div>
+      <ol class="steps">
+        <li><b>Local outbox table for transactions</b><span class="detail">plus a mock "cloud" endpoint (can be a script on your own machine) to prove the sync pattern.</span></li>
+        <li><b>Kill the mock endpoint mid-test</b><span class="detail">confirm the queue holds and drains correctly once it's back.</span></li>
+        <li><b>Write the Track A report</b><span class="detail">accuracy numbers, model sizes, tuned confidence thresholds. This is what hands off to Track B — not the M4 latency numbers themselves.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="trackb">
+    <div class="section-head"><span class="section-num">03</span><h2><span class="badge b">Track B</span> Real-hardware validation gate</h2></div>
+    <p>This track exists because an M4 has roughly 5&#8211;6x the RK3588's NPU throughput. Nothing you measured in Track A tells you whether the real device will hit &lt;350ms — only the real chip does.</p>
+
+    <div class="phase">
+      <div class="phase-top"><h3>B1 &middot; Get a real board</h3><span class="phase-when">Week 3&#8211;4, parallel with A4</span></div>
+      <ol class="steps">
+        <li><b>Order an Orange Pi 5 Plus or Radxa Rock 5B</b><span class="detail">RK3588, 8GB+ RAM — roughly $100&#8211;150, and the fastest way to get real numbers without waiting on the custom carrier board.</span></li>
+        <li><b>Install RKNN-Toolkit2</b><span class="detail">set up the quantization/conversion environment on a dev machine.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>B2 &middot; Port the models</h3><span class="phase-when">Week 5&#8211;6</span></div>
+      <ol class="steps">
+        <li><b>Convert the fast-path embedding model to INT8 via RKNN-Toolkit2</b><span class="detail">budget 1&#8211;3 engineer-days for calibration and accuracy validation.</span></li>
+        <li><b>Convert the VLM to INT4 via the RKLLM toolkit</b><span class="detail">this is the least-proven step in the whole plan — start it early, expect iteration.</span></li>
+        <li><b>Re-run the identical test set from Track A</b><span class="detail">same photos, same weights, same rice-variety dataset — so the comparison is apples-to-apples.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>B3 &middot; Real latency + thermal test</h3><span class="phase-when">Week 6</span></div>
+      <ol class="steps">
+        <li><b>Measure per-stage latency on the RK3588 board</b><span class="detail">fast path, deep path, end-to-end — against the &lt;30ms / ~250ms / &lt;350ms targets.</span></li>
+        <li><b>Run a sustained load test</b><span class="detail">e.g. 500 back-to-back checkouts inside a sealed test box, not an open dev board — this is what actually reveals thermal throttling.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>B4 &middot; Go / no-go decision</h3><span class="phase-when">End of Week 6 <span class="badge gate">Gate</span></span></div>
+      <ol class="steps">
+        <li><b>Go</b><span class="detail">latency and thermal numbers hold up → lock RK3588S, start the custom carrier board (Track C).</span></li>
+        <li><b>No-go</b><span class="detail">if quantization can't close the gap, this is the one point in the plan where reopening the RK3588-vs-Jetson decision is worth the cost — not before.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="trackc">
+    <div class="section-head"><span class="section-num">04</span><h2><span class="badge c">Track C</span> Production build &amp; pilot</h2></div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>C1 &middot; Carrier board + packing mechanics</h3><span class="phase-when">Week 7&#8211;9</span></div>
+      <ol class="steps">
+        <li><b>Finalize the custom carrier board</b><span class="detail">routes dual MIPI-CSI (cameras), eDP (touch panel), RS-485 (ADS1232 weight ADC), and a UART/CAN handoff to the packing MCU.</span></li>
+        <li><b>Confirm the camera modules</b><span class="detail">Sony IMX415/OV5647 with M12 fixed-barrel lenses and bonded polarizers, per the blueprint.</span></li>
+        <li><b>Put packing on its own MCU</b><span class="detail">a second ESP32 (or STM32) drives the drop + seal actuators for the 20kg chute — kept off the RK3588 so a burst of AI inference never makes the packing arm stutter, and vice versa.</span></li>
+        <li><b>Resize the chassis</b><span class="detail">CRCA steel, IP52, now sized for compute + packing mechanism together, with passive airflow paths so the RK3588 stays fanless.</span></li>
+        <li><b>Size the power supply</b><span class="detail">confirm the MeanWell 12V/5A budget still covers compute + cameras + touch panel + packing actuators, or step up if the motors draw more.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>C2 &middot; BOM &amp; manufacturing partner</h3><span class="phase-when">Week 7&#8211;9, parallel</span></div>
+      <ol class="steps">
+        <li><b>Get the packing subsystem quoted</b><span class="detail">motors, actuators, chute, sealing consumables — this is the piece missing from the blueprint's ₹32.8&#8211;38.5K checkout-only BOM.</span></li>
+        <li><b>Engage a prototype/manufacturing partner</b><span class="detail">the same way Smart Soak used Inceptarc — either that vendor pool or one that specializes in kiosk-class hardware.</span></li>
+        <li><b>Reconcile the target BOM</b><span class="detail">toward the deck's ₹98.5K batch figure once packing is quoted for real.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>C3 &middot; Certification</h3><span class="phase-when">Week 9&#8211;11, parallel</span></div>
+      <ol class="steps">
+        <li><b>Legal Metrology certification</b><span class="detail">required — the device bills customers by weight.</span></li>
+        <li><b>BIS &amp; WPC approvals</b><span class="detail">as already scoped in the blueprint.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>C4 &middot; Cloud &amp; fleet software</h3><span class="phase-when">Week 7&#8211;10, parallel</span></div>
+      <ol class="steps">
+        <li><b>Stand up the brand/branch/kiosk hierarchy backend</b><span class="detail">master catalog in Qdrant, MQTT broker, analytics store, promotions engine.</span></li>
+        <li><b>Build the admin dashboard</b><span class="detail">SKU onboarding, branch config, promotions, daily checkout analytics per device.</span></li>
+        <li><b>Build the OTA pipeline</b><span class="detail">versioned model/software updates with rollback.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3>C5 &middot; Bengaluru pilot</h3><span class="phase-when">Week 10&#8211;12</span></div>
+      <ol class="steps">
+        <li><b>Install the pilot unit(s)</b><span class="detail">first real store deployment.</span></li>
+        <li><b>Run to the 1,000-checkout target</b><span class="detail">the milestone that matters more than a polished machine.</span></li>
+        <li><b>Watch five things closely</b><span class="detail">recognition accuracy on lookalikes, real-world latency, thermal behavior over a full day, payment reliability, and packing mechanism safety.</span></li>
+        <li><b>Feed pilot data back</b><span class="detail">into the lookalike model and the final BOM before scaling to a second branch.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="device">
+    <div class="section-head"><span class="section-num">05</span><h2>Production device model</h2></div>
+    <p>What ships in the box, subsystem by subsystem:</p>
+    <div class="tbl-wrap">
+      <table>
+        <caption>AutoDock &amp; Pack — production hardware model</caption>
+        <thead><tr><th>Subsystem</th><th>Spec</th><th>Cost basis</th></tr></thead>
+        <tbody>
+          <tr><td>Compute core</td><td>RK3588S SOM (8GB) + custom carrier board</td><td class="tag">₹9,800 (blueprint)</td></tr>
+          <tr><td>Vision</td><td>Dual Sony IMX415 / OV5647, M12 lens, bonded polarizers</td><td class="tag">₹4,800 (blueprint)</td></tr>
+          <tr><td>Weighing</td><td>TI ADS1232 24-bit ADC + 4 load cells, ΔW&gt;15g trigger</td><td class="tag">₹1,100 (blueprint)</td></tr>
+          <tr><td>Checkout UI</td><td>10.1"/13.3" IPS eDP touch panel</td><td class="tag">₹6,800 (blueprint)</td></tr>
+          <tr><td>Chassis</td><td>CRCA steel, powder-coated, IP52, resized for packing</td><td class="tag">₹7,500+ (blueprint, pre-resize)</td></tr>
+          <tr><td>Power</td><td>MeanWell 12V/5A open-frame PSU, surge protection</td><td class="tag">₹2,800 (blueprint)</td></tr>
+          <tr><td>Packing subsystem</td><td>Dedicated MCU (ESP32/STM32) + drop &amp; seal actuators, 20kg-rated chute</td><td class="tbd">TBD &#8212; get vendor quote</td></tr>
+          <tr><td>Connectivity</td><td>WiFi/Ethernet + optional 4G fallback, MQTT client</td><td class="tbd">TBD &#8212; get vendor quote</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Checkout-only subsystems total ₹32,800&#8211;38,500 per the blueprint. Packing and connectivity are the two line items driving the deck's higher ₹98.5K batch BOM — get both quoted during C2 before treating that number as final.</p>
+  </section>
+
+  <section id="risks">
+    <div class="section-head"><span class="section-num">06</span><h2>Open items to close before you commit hardware spend</h2></div>
+    <div class="callout warn"><span class="label">Unquoted</span>Packing subsystem cost (motors, actuators, chute, sealing consumables) — nothing in either source document prices this out yet.</div>
+    <div class="callout warn"><span class="label">Unvalidated</span>Every latency number in this plan (&lt;30ms / ~250ms / &lt;350ms) is a target until Track B, Phase B3 produces real RK3588 numbers under thermal load.</div>
+    <div class="callout warn"><span class="label">Unconfirmed</span>Manufacturing partner for the kiosk hardware — Inceptarc is your Smart Soak vendor; decide whether they (or someone new) build this too.</div>
+    <div class="callout info"><span class="label">Worth deciding early</span>Whether customers load items one at a time or in a mixed batch — that answer changes whether the fast path needs object detection (YOLO-class) or can stay a single-item classifier, per the earlier tech-stack discussion.</div>
+  </section>
+
+  <footer>
+    HandsOffLabs · AutoDock &amp; Pack — build roadmap · companion to the AutoDock System Explainer
+  </footer>
+
+</div>

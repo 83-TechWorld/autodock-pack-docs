@@ -1,0 +1,558 @@
+<title>AutoDock System Explainer</title>
+<meta name="description" content="Plain-language walkthrough of why AutoDock &amp; Pack runs on RK3588S, how it tells lookalike SKUs apart, and how catalog data, branches and promotions stay in sync." />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#F2F5F3;
+    --paper-raised:#FFFFFF;
+    --ink:#15211D;
+    --ink-soft:#4B5A55;
+    --line:rgba(21,33,29,0.14);
+    --line-strong:rgba(21,33,29,0.28);
+    --accent:#0E7C6B;
+    --accent-ink:#083E36;
+    --accent-soft:rgba(14,124,107,0.10);
+    --accent-soft-strong:rgba(14,124,107,0.18);
+    --money:#B45309;
+    --money-soft:rgba(180,83,9,0.12);
+    --code-bg:rgba(21,33,29,0.05);
+    --shadow:0 1px 2px rgba(21,33,29,0.06), 0 8px 24px rgba(21,33,29,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1715;
+      --paper-raised:#16211D;
+      --ink:#E7EEEA;
+      --ink-soft:#9FB0A9;
+      --line:rgba(231,238,234,0.14);
+      --line-strong:rgba(231,238,234,0.26);
+      --accent:#3FD9C1;
+      --accent-ink:#BAF3E7;
+      --accent-soft:rgba(63,217,193,0.12);
+      --accent-soft-strong:rgba(63,217,193,0.20);
+      --money:#F5A544;
+      --money-soft:rgba(245,165,68,0.14);
+      --code-bg:rgba(231,238,234,0.07);
+      --shadow:0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1715;
+    --paper-raised:#16211D;
+    --ink:#E7EEEA;
+    --ink-soft:#9FB0A9;
+    --line:rgba(231,238,234,0.14);
+    --line-strong:rgba(231,238,234,0.26);
+    --accent:#3FD9C1;
+    --accent-ink:#BAF3E7;
+    --accent-soft:rgba(63,217,193,0.12);
+    --accent-soft-strong:rgba(63,217,193,0.20);
+    --money:#F5A544;
+    --money-soft:rgba(245,165,68,0.14);
+    --code-bg:rgba(231,238,234,0.07);
+    --shadow:0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--accent-soft-strong); }
+
+  .wrap{ max-width:920px; margin:0 auto; padding:0 24px 120px; }
+
+  /* ---------- Header ---------- */
+  header.hero{
+    border-bottom:1px solid var(--line);
+    padding:56px 0 32px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px; height:7px;
+    background:var(--accent);
+    display:inline-block;
+    border-radius:1px;
+    transform:rotate(45deg);
+  }
+  h1{
+    font-family:'IBM Plex Sans Condensed', sans-serif;
+    font-weight:700;
+    font-size:clamp(32px,5vw,46px);
+    line-height:1.08;
+    letter-spacing:-0.01em;
+    margin:0 0 16px;
+    text-wrap:balance;
+  }
+  .hero p.lede{
+    font-size:18px;
+    color:var(--ink-soft);
+    max-width:62ch;
+    margin:0;
+  }
+
+  /* ---------- Table of contents ---------- */
+  nav.toc{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin:32px 0 56px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+  }
+  nav.toc a{
+    background:var(--paper-raised);
+    color:var(--ink);
+    text-decoration:none;
+    padding:12px 14px;
+    display:flex;
+    gap:8px;
+  }
+  nav.toc a:hover{ background:var(--accent-soft); }
+  nav.toc span.n{ color:var(--accent); font-weight:600; }
+
+  /* ---------- Sections ---------- */
+  section{ padding:52px 0; border-bottom:1px solid var(--line); scroll-margin-top:24px; }
+  section:last-of-type{ border-bottom:none; }
+
+  .section-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:22px; }
+  .section-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--accent);
+    font-weight:600;
+    white-space:nowrap;
+  }
+  h2{
+    font-family:'IBM Plex Sans Condensed', sans-serif;
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:-0.005em;
+    margin:0;
+    text-wrap:balance;
+  }
+  h3{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    font-size:16.5px;
+    margin:28px 0 10px;
+    color:var(--ink);
+  }
+  p{ margin:0 0 14px; max-width:70ch; }
+  p.tight{ margin-bottom:6px; }
+  strong{ font-weight:600; }
+  .muted{ color:var(--ink-soft); }
+
+  .callout{
+    background:var(--accent-soft);
+    border:1px solid var(--accent-soft-strong);
+    border-radius:3px;
+    padding:16px 18px;
+    margin:18px 0;
+    font-size:14.5px;
+  }
+  .callout .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--accent-ink);
+    font-weight:600;
+    display:block;
+    margin-bottom:6px;
+  }
+
+  .money-callout{
+    background:var(--money-soft);
+    border:1px solid rgba(180,83,9,0.3);
+  }
+  .money-callout .label{ color:var(--money); }
+
+  /* ---------- job table ---------- */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14.5px;
+    margin:8px 0 4px;
+  }
+  caption{ text-align:left; font-size:12.5px; color:var(--ink-soft); margin-bottom:8px; font-family:'IBM Plex Mono',monospace; }
+  th{
+    text-align:left;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    padding:0 12px 10px 0;
+    border-bottom:1px solid var(--line-strong);
+  }
+  td{
+    padding:12px 12px 12px 0;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tr:last-child td{ border-bottom:1px solid var(--line-strong); }
+  .tbl-wrap{ overflow-x:auto; }
+  td.tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--accent-ink);
+    white-space:nowrap;
+  }
+
+  /* ---------- pipeline steps ---------- */
+  .steps{ list-style:none; margin:20px 0; padding:0; counter-reset:step; }
+  .steps li{
+    counter-increment:step;
+    position:relative;
+    padding:0 0 22px 40px;
+    border-left:1px solid var(--line-strong);
+    margin-left:11px;
+  }
+  .steps li:last-child{ border-left-color:transparent; padding-bottom:0; }
+  .steps li::before{
+    content:counter(step);
+    position:absolute; left:-11px; top:0;
+    width:22px; height:22px;
+    background:var(--paper-raised);
+    border:1px solid var(--line-strong);
+    border-radius:50%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink);
+  }
+  .steps b{ display:block; font-size:15px; margin-bottom:3px; }
+  .steps span{ color:var(--ink-soft); font-size:14.5px; }
+
+  /* ---------- figures ---------- */
+  figure{ margin:24px 0; padding:0; }
+  figure svg{ max-width:100%; height:auto; display:block; }
+  figure .frame{
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    border-radius:4px;
+    padding:18px 8px;
+  }
+  figcaption{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  svg text{ font-family:'IBM Plex Mono', monospace; }
+  svg .lbl{ font-size:11.5px; fill:var(--ink-soft); }
+  svg .box-lbl{ font-size:12.5px; fill:var(--ink); font-weight:600; }
+  svg .sub-lbl{ font-size:10.5px; fill:var(--ink-soft); }
+  svg .accent-fill{ fill:var(--accent); }
+  svg .accent-stroke{ stroke:var(--accent); }
+  svg .money-stroke{ stroke:var(--money); }
+  svg .money-fill{ fill:var(--money); }
+
+  code, .mono{ font-family:'IBM Plex Mono', monospace; font-size:0.92em; }
+  .inline-code{
+    background:var(--code-bg);
+    padding:1px 6px;
+    border-radius:3px;
+    font-size:0.88em;
+  }
+
+  ul.plain{ margin:0 0 14px; padding-left:20px; }
+  ul.plain li{ margin-bottom:8px; max-width:68ch; }
+
+  footer{
+    padding:40px 0 0;
+    color:var(--ink-soft);
+    font-size:13px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  @media (max-width:640px){
+    nav.toc{ grid-template-columns:1fr 1fr; }
+    .section-head{ flex-direction:column; gap:4px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">HandsOffLabs · AutoDock &amp; Pack · Systems Note</div>
+    <h1>Why RK3588S, and how the whole loop stays instant</h1>
+    <p class="lede">One walkthrough covering the chip choice, the recognition model plan (including telling Basmati from Sona Masoori), catalog onboarding, fleet rollout across branches, cloud sync, daily-usage analytics, and how discounts and free items ride the same pipe.</p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <a href="#chip"><span class="n">01</span> The chip</a>
+    <a href="#models"><span class="n">02</span> The models</a>
+    <a href="#lookalikes"><span class="n">03</span> Lookalike SKUs</a>
+    <a href="#onboarding"><span class="n">04</span> New SKUs</a>
+    <a href="#deploy"><span class="n">05</span> Instant deploy</a>
+    <a href="#branches"><span class="n">06</span> Branches</a>
+    <a href="#sync"><span class="n">07</span> Cloud sync</a>
+    <a href="#analytics"><span class="n">08</span> Daily usage</a>
+    <a href="#promos"><span class="n">09</span> Discounts &amp; free items</a>
+  </nav>
+
+  <section id="chip">
+    <div class="section-head"><span class="section-num">01</span><h2>Why RK3588S, in plain terms</h2></div>
+    <p>Think of it like choosing an engine for a delivery scooter, not a race car. A Jetson Orin Nano is the race-car engine — about 11x more raw AI power. But it needs a fan, it drinks 15–25W, and a single board costs more than the entire compute budget in your blueprint. RK3588S is the scooter engine: 5–8W, no fan needed, fits inside a sealed IP52 steel box, and costs roughly a third of the Jetson system. For a device that has to sit quietly inside a food-court kiosk all day on a fixed BOM, "enough power, cheap, cool-running" beats "maximum power" every time.</p>
+    <div class="tbl-wrap">
+      <table>
+        <caption>What RK3588S is actually doing inside the kiosk</caption>
+        <thead><tr><th>Job on the kiosk</th><th>Why RK3588S covers it</th></tr></thead>
+        <tbody>
+          <tr><td>Reading the two cameras + running the fast/deep recognition models</td><td class="tag">6 TOPS NPU</td></tr>
+          <tr><td>Driving the 10.1"/13.3" touch panel (checkout UI)</td><td class="tag">eDP output, no extra controller</td></tr>
+          <tr><td>Holding the local SKU catalog (~1,500 items) for offline matching</td><td class="tag">up to 32GB RAM headroom</td></tr>
+          <tr><td>Talking to the weight ADC, payment terminal, cloud sync</td><td class="tag">RS-485 / networking on-chip</td></tr>
+          <tr><td>Staying cool in a sealed steel enclosure, all day</td><td class="tag">5–8W, passive cooling</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><span class="label">Not this chip's job</span>Driving the pack-and-seal motors for the 20kg drop. That's real-time, safety-critical actuator control — it belongs on its own small controller (an ESP32, same family you already use on Smart Soak) so a burst of AI inference never makes the packing arm stutter, and vice versa.</div>
+  </section>
+
+  <section id="models">
+    <div class="section-head"><span class="section-num">02</span><h2>The model plan: cheap first, smart only when needed</h2></div>
+    <p>The trick to "no latency" isn't one fast model — it's <em>not running the expensive model unless you have to</em>. Every item goes through the same funnel:</p>
+    <ol class="steps">
+      <li><b>Weight gate</b><span>The 4 load cells stay idle until something changes by more than 15g. No change, no camera wake-up, no compute spent. This alone kills most of the "always-on AI" cost.</span></li>
+      <li><b>Weight pre-filter</b><span>The measured weight (±tolerance) narrows ~1,500 catalog SKUs down to a short candidate list before vision even runs — usually a handful of items, not the whole store.</span></li>
+      <li><b>Fast path — MobileNetV4 + FAISS</b><span>A lightweight camera model turns the item into a numeric "fingerprint" (an embedding), compared against the candidate list's fingerprints already stored on-device. Target: under 30ms, covers roughly 9 in 10 items — anything visually distinct with a normal barcode-able package.</span></li>
+      <li><b>Deep path — quantized VLM (Qwen2-VL, INT4)</b><span>Only triggers when the fast path isn't confident: loose bags, unusual angles, or lookalike items. Budget ~250ms. This is the path that needs the most testing on real RK3588 hardware, not the Mac.</span></li>
+    </ol>
+    <p class="muted">On vector search specifically: keep <span class="inline-code">FAISS</span> running in-process on the kiosk (near-zero overhead for ~1,500 items) and save <span class="inline-code">Qdrant</span> for the cloud side, where it manages the master catalog across every branch. Running a full database server on the kiosk itself just competes with the AI models for the same 8GB of RAM.</p>
+  </section>
+
+  <section id="lookalikes">
+    <div class="section-head"><span class="section-num">03</span><h2>Telling Basmati from Sona Masoori — the hard case</h2></div>
+    <p>This is the real technical challenge, and it's worth being honest about: a generic "what object is this" model was never trained to separate rice varieties. It'll cheerfully call all four "rice" and stop there. Solving it takes two extra ingredients layered onto the pipeline above, not a bigger generic model.</p>
+    <h3>Ingredient 1 — a fine-grained fingerprint, not a generic one</h3>
+    <p>Instead of one all-purpose embedding model, fine-tune it specifically on grain shots — Basmati, Sona Masoori, plain rice, idli rice — from your own onboarding photos, at consistent lighting and angle. This pulls those four fingerprints apart in vector space on purpose, the way a jeweler's loupe is built to separate near-identical stones rather than to recognize "a stone."</p>
+    <h3>Ingredient 2 — density as a second, nearly-free signal</h3>
+    <p>Weight ÷ how much space the item takes up in the tray gives a bulk-density number. Basmati (long, slender grains) sits at a different density than idli rice (short, parboiled, denser). This costs almost no compute — it's arithmetic on numbers you already have — and it's often more decisive than the image alone.</p>
+    <div class="callout">
+      <span class="label">How they combine</span>
+      texture fingerprint + density number + "only match against what this store actually stocks" (store context) → a confidence score. High confidence → ring it up. Low confidence, or two lookalikes still tied → that's exactly when the deep VLM path earns its 250ms, by reasoning over the image in words ("long slender grains, low density → Basmati") instead of just pattern-matching.
+    </div>
+
+    <figure>
+      <div class="frame">
+        <svg viewBox="0 0 900 400" role="img" aria-label="Flow diagram: item dropped on tray triggers weight gate, then weight pre-filter, then fast path matching; high-confidence single match goes straight to checkout, while a low-confidence or tied same-category result routes to the deep path combining texture, density and store context before reaching a confidence score and checkout.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+          <g stroke="currentColor" stroke-width="1" fill="none">
+            <!-- Step 1: tray -->
+            <rect x="16" y="150" width="120" height="60" rx="3"></rect>
+            <!-- Step 2: weight gate -->
+            <rect x="190" y="150" width="130" height="60" rx="3"></rect>
+            <!-- Step 3: fast path -->
+            <rect x="374" y="150" width="150" height="60" rx="3"></rect>
+            <!-- high confidence branch -->
+            <path d="M524,165 C 600,120 660,110 720,110" marker-end="url(#arrow)"></path>
+            <rect x="720" y="80" width="164" height="60" rx="3"></rect>
+            <!-- low confidence / same-category branch -->
+            <path d="M524,195 C 580,240 610,250 650,250" marker-end="url(#arrow)"></path>
+            <rect class="accent-stroke" x="650" y="220" width="234" height="130" rx="3"></rect>
+
+            <!-- connectors between steps 1-2-3 -->
+            <line x1="136" y1="180" x2="188" y2="180" marker-end="url(#arrow)"></line>
+            <line x1="320" y1="180" x2="372" y2="180" marker-end="url(#arrow)"></line>
+
+            <!-- inside deep-path box: three inputs merging -->
+            <rect x="668" y="236" width="90" height="30" rx="2" stroke-dasharray="2,2"></rect>
+            <rect x="668" y="276" width="90" height="30" rx="2" stroke-dasharray="2,2"></rect>
+            <line x1="758" y1="251" x2="800" y2="290" marker-end="url(#arrow)"></line>
+            <line x1="758" y1="291" x2="800" y2="290" marker-end="url(#arrow)"></line>
+            <circle class="accent-stroke" cx="812" cy="290" r="14"></circle>
+          </g>
+
+          <text x="76" y="184" text-anchor="middle" class="box-lbl">Item dropped</text>
+          <text x="76" y="198" text-anchor="middle" class="sub-lbl">on tray</text>
+
+          <text x="255" y="176" text-anchor="middle" class="box-lbl">Weight gate</text>
+          <text x="255" y="190" text-anchor="middle" class="sub-lbl">ΔW &gt; 15g</text>
+
+          <text x="449" y="176" text-anchor="middle" class="box-lbl">Fast path</text>
+          <text x="449" y="190" text-anchor="middle" class="sub-lbl">MobileNetV4 + FAISS, &lt;30ms</text>
+
+          <text x="802" y="105" text-anchor="middle" class="box-lbl">Single, confident</text>
+          <text x="802" y="119" text-anchor="middle" class="sub-lbl">match → checkout</text>
+          <text x="649" y="70" class="lbl">high confidence</text>
+
+          <text x="713" y="245" text-anchor="middle" class="sub-lbl">texture</text>
+          <text x="713" y="285" text-anchor="middle" class="sub-lbl">density</text>
+          <text x="812" y="294" text-anchor="middle" class="sub-lbl">score</text>
+          <text x="767" y="220" class="box-lbl">Deep path (~250ms)</text>
+          <text x="650" y="210" class="lbl">low confidence / tied lookalikes (e.g. rice varieties)</text>
+        </svg>
+      </div>
+      <figcaption>Fig 1 — weight gates the camera, weight pre-filters the candidates, and only genuinely ambiguous items (same-category lookalikes) pay the 250ms deep-path cost.</figcaption>
+    </figure>
+    <p class="muted">Practical next step: start collecting a small labeled photo set per grain variety now (multiple fill levels, angles, lighting) — that dataset is what the fine-tuned fingerprint model above is trained on. It matters more to accuracy than any chip decision.</p>
+  </section>
+
+  <section id="onboarding">
+    <div class="section-head"><span class="section-num">04</span><h2>Adding a new SKU — no retraining, ever</h2></div>
+    <p>"No retraining" doesn't mean the system gets smarter on its own — it means adding a product never touches the underlying AI model at all. Only the reference list of fingerprints grows.</p>
+    <ol class="steps">
+      <li><b>Capture</b><span>4 photos of the new item + its weight, taken once, from a branch or HQ.</span></li>
+      <li><b>Fingerprint</b><span>The same fixed embedding model turns those photos into vectors — nothing is trained, it's a lookup, so this takes seconds.</span></li>
+      <li><b>Publish</b><span>The new vectors + price land in the cloud master catalog (Section 07) and get pushed to whichever kiosks stock that item.</span></li>
+      <li><b>Live</b><span>~30 seconds after publish, any kiosk that received it can recognize the item — same model, bigger reference list.</span></li>
+    </ol>
+  </section>
+
+  <section id="deploy">
+    <div class="section-head"><span class="section-num">05</span><h2>Making rollout feel instant</h2></div>
+    <p>Two different things both need to feel instant, and they're solved differently:</p>
+    <h3>Scanning at the counter — instant because it's local</h3>
+    <p>The fast/deep path recognition (Section 02) never calls the cloud mid-transaction. Everything it needs is already sitting in the kiosk's local FAISS index. This is the actual mechanism behind "no latency during scanning" — it's not that the network is fast, it's that checkout doesn't use the network at all.</p>
+    <h3>New kiosk or new SKU going live — instant because sync is small and incremental</h3>
+    <ul class="plain">
+      <li><strong>First boot at a new site:</strong> the kiosk authenticates with its device ID + branch ID, downloads that branch's active SKU subset (vectors are small — a few KB per item, not photos) and the current promotion rules, and is ready to trade in minutes, not days.</li>
+      <li><strong>A single new SKU, on an already-running fleet:</strong> pushed as a small delta over MQTT (the same channel your blueprint already planned for fleet sync) — every subscribed kiosk has it within roughly 30 seconds, no reboot, no reinstall.</li>
+    </ul>
+  </section>
+
+  <section id="branches">
+    <div class="section-head"><span class="section-num">06</span><h2>Running many branches under one brand</h2></div>
+    <p>Model this as three levels, and let each level own only what's genuinely local to it:</p>
+    <div class="tbl-wrap">
+      <table>
+        <caption>Who owns what</caption>
+        <thead><tr><th>Level</th><th>Owns</th></tr></thead>
+        <tbody>
+          <tr><td class="tag">Brand (HQ)</td><td>Master SKU catalog, master fingerprints, brand-wide pricing defaults</td></tr>
+          <tr><td class="tag">Branch</td><td>Which subset of the master catalog it actually stocks, branch-specific price overrides and promotions</td></tr>
+          <tr><td class="tag">Kiosk</td><td>A local copy of just its branch's active subset, so on-device search stays small and fast</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A branch manager adding a promotion or a local price change never touches another branch, and never needs an engineer — it's a config change at the branch level that syncs down the same delta channel as new SKUs.</p>
+  </section>
+
+  <section id="sync">
+    <div class="section-head"><span class="section-num">07</span><h2>How catalog data actually reaches the cloud</h2></div>
+    <p>Given your background with outbox patterns and event-driven sync, this will look familiar: each kiosk keeps a small local queue of things that happened (sales, new-item photos if captured on-device) and drains it whenever it has connectivity — never blocking a live transaction on a network call.</p>
+    <figure>
+      <div class="frame">
+        <svg viewBox="0 0 900 430" role="img" aria-label="Diagram: three branches, each with kiosks holding a local catalog subset and outbox queue, sync bidirectionally with a brand cloud containing the master catalog in Qdrant and an analytics store; catalog deltas flow down to kiosks and batched transactions flow up.">
+          <defs>
+            <marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+          <g stroke="currentColor" stroke-width="1" fill="none">
+            <!-- brand cloud -->
+            <rect class="accent-stroke" x="330" y="24" width="240" height="86" rx="3"></rect>
+            <line x1="450" y1="24" x2="450" y2="110" stroke-dasharray="2,3"></line>
+
+            <!-- branches -->
+            <rect x="40" y="230" width="150" height="52" rx="3"></rect>
+            <rect x="375" y="230" width="150" height="52" rx="3"></rect>
+            <rect x="710" y="230" width="150" height="52" rx="3"></rect>
+
+            <!-- kiosks under branch A -->
+            <rect x="30" y="330" width="80" height="46" rx="3" stroke-dasharray="1,2"></rect>
+            <rect x="122" y="330" width="80" height="46" rx="3" stroke-dasharray="1,2"></rect>
+            <!-- kiosk under branch B -->
+            <rect x="405" y="330" width="90" height="46" rx="3" stroke-dasharray="1,2"></rect>
+            <!-- kiosk under branch C -->
+            <rect x="740" y="330" width="90" height="46" rx="3" stroke-dasharray="1,2"></rect>
+
+            <!-- branch to kiosk lines -->
+            <line x1="90" y1="282" x2="70" y2="328"></line>
+            <line x1="130" y1="282" x2="162" y2="328"></line>
+            <line x1="450" y1="282" x2="450" y2="328"></line>
+            <line x1="785" y1="282" x2="785" y2="328"></line>
+
+            <!-- cloud to branch: catalog delta down -->
+            <path d="M400,112 C 300,160 200,190 118,228" marker-end="url(#arrow2)"></path>
+            <path d="M450,112 L450,228" marker-end="url(#arrow2)"></path>
+            <path d="M500,112 C 620,160 730,190 790,228" marker-end="url(#arrow2)"></path>
+
+            <!-- branch to cloud: transactions up -->
+            <path class="money-stroke" d="M130,230 C 220,150 300,110 328,74" marker-end="url(#arrow2)"></path>
+            <path class="money-stroke" d="M465,228 C 470,190 470,150 465,112" marker-end="url(#arrow2)"></path>
+            <path class="money-stroke" d="M800,230 C 700,150 620,110 572,74" marker-end="url(#arrow2)"></path>
+          </g>
+
+          <text x="450" y="55" text-anchor="middle" class="box-lbl">Brand cloud</text>
+          <text x="450" y="72" text-anchor="middle" class="sub-lbl">master catalog (Qdrant)</text>
+          <text x="450" y="86" text-anchor="middle" class="sub-lbl">analytics store</text>
+
+          <text x="115" y="252" text-anchor="middle" class="box-lbl">Branch A</text>
+          <text x="450" y="252" text-anchor="middle" class="box-lbl">Branch B</text>
+          <text x="785" y="252" text-anchor="middle" class="box-lbl">Branch C</text>
+
+          <text x="70" y="357" text-anchor="middle" class="sub-lbl">kiosk 1</text>
+          <text x="162" y="357" text-anchor="middle" class="sub-lbl">kiosk 2</text>
+          <text x="450" y="357" text-anchor="middle" class="sub-lbl">kiosk</text>
+          <text x="785" y="357" text-anchor="middle" class="sub-lbl">kiosk</text>
+
+          <text x="230" y="170" class="lbl">catalog + promo deltas ↓ (MQTT)</text>
+          <text x="560" y="405" class="lbl money-fill">batched transactions ↑ (outbox queue, retries on reconnect)</text>
+        </svg>
+      </div>
+      <figcaption>Fig 2 — catalog and promotion changes flow one way down to kiosks; sales and usage data flow the other way up, both asynchronously so a dropped connection never stalls a checkout.</figcaption>
+    </figure>
+  </section>
+
+  <section id="analytics">
+    <div class="section-head"><span class="section-num">08</span><h2>Counting daily customers per device</h2></div>
+    <p>Every completed checkout is one event: device ID, branch ID, items, amount, timestamp. It's written to the kiosk's local outbox the instant the transaction closes — before any network call — so counting never depends on connectivity being up at that moment.</p>
+    <ol class="steps">
+      <li><b>Local write</b><span>Transaction closes → one row in the kiosk's local queue. This is your source of truth even if the branch is offline for a day.</span></li>
+      <li><b>Batched upload</b><span>The kiosk drains its queue to the cloud analytics store every few minutes (or immediately, if connectivity just came back).</span></li>
+      <li><b>Roll-up</b><span>"Checkouts today, this device" is just a count filtered by device ID and date — the same shape gives you per-branch and per-brand totals for free, no separate pipeline.</span></li>
+    </ol>
+  </section>
+
+  <section id="promos">
+    <div class="section-head"><span class="section-num">09</span><h2>Discounts and free items</h2></div>
+    <p>These ride the exact same delta-sync channel as new SKUs (Section 05/07) — a promotion is just another small rule pushed down to the kiosks that should honor it, and evaluated locally so it still works offline.</p>
+    <div class="tbl-wrap">
+      <table>
+        <caption>Promotion types and how they resolve at checkout</caption>
+        <thead><tr><th>Type</th><th>Resolved locally as</th></tr></thead>
+        <tbody>
+          <tr><td>% or ₹ off an item or category</td><td>a price-adjustment rule keyed to a SKU or SKU group, checked after identification, before payment</td></tr>
+          <tr><td>Buy-X-get-Y</td><td>a rule that watches the running cart, not a single item</td></tr>
+          <tr><td>Free sample / loyalty reward</td><td>a ₹0 price override on a flagged SKU, unlocked by scanning a phone number or loyalty code</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout money-callout"><span class="label">Why locally</span>If a branch loses connectivity mid-day, a promotion that only lived in the cloud would silently vanish. Evaluating it on-device — using the last-synced rule set — means the discount is exactly as reliable as the scanning itself.</div>
+  </section>
+
+  <footer>
+    HandsOffLabs · AutoDock &amp; Pack — internal systems note · reconciles the Edge-AI Checkout Kiosk Blueprint and the pre-seed deck
+  </footer>
+
+</div>

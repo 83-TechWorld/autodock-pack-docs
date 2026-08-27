@@ -1,0 +1,317 @@
+<title>Training the Recognition Model</title>
+<meta name="description" content="Step-by-step plan for training AutoDock & Pack's vision model on Indian groceries — rice varieties, dal grades, masalas, packaged goods, and produce." />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#F2F5F3; --paper-raised:#FFFFFF;
+    --ink:#15211D; --ink-soft:#4B5A55;
+    --line:rgba(21,33,29,0.14); --line-strong:rgba(21,33,29,0.28);
+    --accent:#0E7C6B; --accent-ink:#083E36;
+    --accent-soft:rgba(14,124,107,0.10); --accent-soft-strong:rgba(14,124,107,0.18);
+    --tier2:#8B5E1F; --tier2-soft:rgba(139,94,31,0.12);
+    --tier3:#2563A8; --tier3-soft:rgba(37,99,168,0.12);
+    --warn:#B4231F; --warn-soft:rgba(180,35,31,0.10); --warn-line:rgba(180,35,31,0.32);
+    --code-bg:rgba(21,33,29,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1715; --paper-raised:#16211D;
+      --ink:#E7EEEA; --ink-soft:#9FB0A9;
+      --line:rgba(231,238,234,0.14); --line-strong:rgba(231,238,234,0.26);
+      --accent:#3FD9C1; --accent-ink:#BAF3E7;
+      --accent-soft:rgba(63,217,193,0.12); --accent-soft-strong:rgba(63,217,193,0.20);
+      --tier2:#D9A455; --tier2-soft:rgba(217,164,85,0.14);
+      --tier3:#7BB3EA; --tier3-soft:rgba(123,179,234,0.14);
+      --warn:#F0827D; --warn-soft:rgba(240,130,125,0.12); --warn-line:rgba(240,130,125,0.35);
+      --code-bg:rgba(231,238,234,0.07);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1715; --paper-raised:#16211D;
+    --ink:#E7EEEA; --ink-soft:#9FB0A9;
+    --line:rgba(231,238,234,0.14); --line-strong:rgba(231,238,234,0.26);
+    --accent:#3FD9C1; --accent-ink:#BAF3E7;
+    --accent-soft:rgba(63,217,193,0.12); --accent-soft-strong:rgba(63,217,193,0.20);
+    --tier2:#D9A455; --tier2-soft:rgba(217,164,85,0.14);
+    --tier3:#7BB3EA; --tier3-soft:rgba(123,179,234,0.14);
+    --warn:#F0827D; --warn-soft:rgba(240,130,125,0.12); --warn-line:rgba(240,130,125,0.35);
+    --code-bg:rgba(231,238,234,0.07);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  ::selection{ background:var(--accent-soft-strong); }
+  .wrap{ max-width:960px; margin:0 auto; padding:0 24px 120px; }
+
+  header.hero{ border-bottom:1px solid var(--line); padding:56px 0 32px; margin-bottom:8px; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .eyebrow::before{ content:""; width:7px; height:7px; background:var(--accent); display:inline-block; border-radius:1px; transform:rotate(45deg); }
+  h1{ font-family:'IBM Plex Sans Condensed', sans-serif; font-weight:700; font-size:clamp(30px,4.6vw,44px); line-height:1.08; letter-spacing:-0.01em; margin:0 0 16px; text-wrap:balance; }
+  .hero p.lede{ font-size:18px; color:var(--ink-soft); max-width:64ch; margin:0; }
+
+  nav.toc{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin:32px 0 56px; font-family:'IBM Plex Mono', monospace; font-size:13px; }
+  nav.toc a{ background:var(--paper-raised); color:var(--ink); text-decoration:none; padding:12px 14px; display:flex; gap:8px; }
+  nav.toc a:hover{ background:var(--accent-soft); }
+  nav.toc span.n{ color:var(--accent); font-weight:600; }
+
+  section{ padding:52px 0; border-bottom:1px solid var(--line); scroll-margin-top:24px; }
+  section:last-of-type{ border-bottom:none; }
+  .section-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:22px; }
+  .section-num{ font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); font-weight:600; white-space:nowrap; }
+  h2{ font-family:'IBM Plex Sans Condensed', sans-serif; font-weight:700; font-size:26px; letter-spacing:-0.005em; margin:0; text-wrap:balance; }
+  h3{ font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:16px; margin:0 0 4px; }
+  p{ margin:0 0 14px; max-width:72ch; }
+  .muted{ color:var(--ink-soft); }
+  strong{ font-weight:600; }
+
+  .badge{ display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:2px; }
+  .badge.t1{ background:var(--accent-soft); color:var(--accent-ink); border:1px solid var(--accent-soft-strong); }
+  .badge.t2{ background:var(--tier2-soft); color:var(--tier2); border:1px solid rgba(139,94,31,0.3); }
+  .badge.t3{ background:var(--tier3-soft); color:var(--tier3); border:1px solid rgba(37,99,168,0.3); }
+
+  .phase{ border:1px solid var(--line); border-radius:4px; background:var(--paper-raised); padding:22px 24px; margin-bottom:16px; }
+  .phase-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .phase-when{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); }
+
+  .steps{ list-style:none; margin:14px 0 0; padding:0; }
+  .steps li{ position:relative; padding:0 0 12px 28px; font-size:14.5px; }
+  .steps li:last-child{ padding-bottom:0; }
+  .steps li::before{ content:"□"; position:absolute; left:0; top:0; color:var(--accent); font-family:'IBM Plex Mono',monospace; font-size:15px; }
+  .steps li b{ font-weight:600; }
+  .steps li span.detail{ display:block; color:var(--ink-soft); font-size:13.8px; margin-top:2px; }
+
+  .callout{ border-radius:3px; padding:14px 16px; margin:14px 0; font-size:14px; }
+  .callout.info{ background:var(--accent-soft); border:1px solid var(--accent-soft-strong); }
+  .callout.warn{ background:var(--warn-soft); border:1px solid var(--warn-line); }
+  .callout .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; display:block; margin-bottom:5px; }
+  .callout.info .label{ color:var(--accent-ink); }
+  .callout.warn .label{ color:var(--warn); }
+
+  figure{ margin:24px 0 0; }
+  figure svg{ max-width:100%; height:auto; display:block; }
+  .frame{ border:1px solid var(--line); background:var(--paper-raised); border-radius:4px; padding:20px 12px; }
+  figcaption{ font-size:13px; color:var(--ink-soft); margin-top:10px; font-family:'IBM Plex Mono', monospace; }
+  svg text{ font-family:'IBM Plex Mono', monospace; }
+  svg .box-lbl{ font-size:12.5px; fill:var(--ink); font-weight:600; }
+  svg .sub-lbl{ font-size:10.5px; fill:var(--ink-soft); }
+  svg .lbl{ font-size:11px; fill:var(--ink-soft); }
+  svg .accent-stroke{ stroke:var(--accent); }
+  svg .accent-fill{ fill:var(--accent); }
+
+  .tbl-wrap{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:14.5px; margin:8px 0 4px; }
+  caption{ text-align:left; font-size:12.5px; color:var(--ink-soft); margin-bottom:8px; font-family:'IBM Plex Mono',monospace; }
+  th{ text-align:left; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; padding:0 12px 10px 0; border-bottom:1px solid var(--line-strong); white-space:nowrap; }
+  td{ padding:11px 12px 11px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:1px solid var(--line-strong); }
+  td.tag{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--accent-ink); white-space:nowrap; }
+
+  .inline-code{ font-family:'IBM Plex Mono', monospace; background:var(--code-bg); padding:1px 6px; border-radius:3px; font-size:0.88em; }
+  ul.plain{ margin:0 0 14px; padding-left:20px; }
+  ul.plain li{ margin-bottom:8px; max-width:70ch; }
+
+  footer{ padding:40px 0 0; color:var(--ink-soft); font-size:13px; font-family:'IBM Plex Mono', monospace; }
+
+  @media (max-width:640px){
+    nav.toc{ grid-template-columns:1fr 1fr; }
+    .section-head{ flex-direction:column; gap:4px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">HandsOffLabs · AutoDock &amp; Pack · Model Training</div>
+    <h1>Training the model to know Indian groceries, not just "objects"</h1>
+    <p class="lede">You're right that this is the hard part — and the part a generic vision model can't do out of the box. Here's how to actually build it: what to collect, how to train it so new SKUs never need retraining, and a realistic order to tackle rice, dal grades, masalas, packaged goods, and produce.</p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <a href="#twothings"><span class="n">00</span> Two different things</a>
+    <a href="#tiers"><span class="n">01</span> Difficulty tiers</a>
+    <a href="#collect"><span class="n">02</span> Collecting data</a>
+    <a href="#public"><span class="n">03</span> Don't start from zero</a>
+    <a href="#method"><span class="n">04</span> Training method</a>
+    <a href="#grades"><span class="n">05</span> The dal-grade problem</a>
+    <a href="#infra"><span class="n">06</span> Where training runs</a>
+    <a href="#eval"><span class="n">07</span> Evaluation targets</a>
+    <a href="#loop"><span class="n">08</span> The improvement loop</a>
+    <a href="#scope"><span class="n">09</span> Realistic scope</a>
+  </nav>
+
+  <section id="twothings">
+    <div class="section-head"><span class="section-num">00</span><h2>Onboarding a SKU vs. training the model — not the same step</h2></div>
+    <p>Worth separating these clearly, because the plan changes depending on which one you mean:</p>
+    <ul class="plain">
+      <li><strong>Onboarding</strong> (4 photos, 30 seconds) — adds a new reference fingerprint to the catalog, using a model that is <em>already trained</em>. This is cheap and is what happens every time a store stocks a new item.</li>
+      <li><strong>Training</strong> (what this page is about) — teaches the underlying model how to tell Indian groceries apart <em>in the first place</em>: that Basmati and Sona Masoori are different, that broken-grain toor dal looks different from whole-grain, that a green chili and a cucumber are not the same thing at a glance. You do this once (and periodically improve it), on a proper dataset — not per SKU.</li>
+    </ul>
+    <p>Get training right and onboarding stays cheap forever. Get it wrong and every new SKU becomes a retraining project — exactly what your "no retraining" pitch is trying to avoid.</p>
+  </section>
+
+  <section id="tiers">
+    <div class="section-head"><span class="section-num">01</span><h2>Not all products are equally hard — tier them</h2></div>
+    <p>"All Indian products" is really three very different computer-vision problems wearing one trenchcoat. Treat them separately and the hard 20% stops eating budget meant for the easy 80%.</p>
+    <div class="tbl-wrap">
+      <table>
+        <caption>Difficulty tiers and what each one actually needs</caption>
+        <thead><tr><th>Tier</th><th>Examples</th><th>What makes it hard</th><th>What it needs</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge t1">Tier 1</span></td><td>Branded packets — biscuits, snacks, spice pouches, bottled goods</td><td>Barely hard — distinct box art, logos, colors</td><td>Standard classification; barcode/weight can do most of the confirming</td></tr>
+          <tr><td><span class="badge t2">Tier 2</span></td><td>Rice varieties, dal types &amp; quality grades, whole/powdered masalas</td><td>Visually near-identical between variants; grades differ subtly</td><td>Fine-grained fingerprint model + weight/density fusion — your actual moat</td></tr>
+          <tr><td><span class="badge t3">Tier 3</span></td><td>Fruits &amp; vegetables</td><td>No fixed shape — size, ripeness and color shift daily</td><td>Category-level recognition (not exact variety) + weight-driven pricing</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout info"><span class="label">Why this matters</span>Tier 1 is where a lot of your SKU count lives but almost none of your risk. Tier 2 is where the device either earns its "unique" claim or doesn't. Tier 3 is a different problem again — don't try to solve it with the same approach as Tier 2.</div>
+  </section>
+
+  <section id="collect">
+    <div class="section-head"><span class="section-num">02</span><h2>Collecting the training data, tier by tier</h2></div>
+
+    <div class="phase">
+      <div class="phase-top"><h3><span class="badge t1">Tier 1</span> Packaged goods</h3></div>
+      <ol class="steps">
+        <li><b>Reuse the 4-photo onboarding flow</b><span class="detail">it's already enough signal — distinct packaging does most of the work.</span></li>
+        <li><b>Scale it by crowdsourcing across branches</b><span class="detail">whoever restocks a new packaged item photographs it on the spot; no dedicated data-collection trip needed.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3><span class="badge t2">Tier 2</span> Rice, dal, masalas — the fine-grained set</h3></div>
+      <ol class="steps">
+        <li><b>Build one fixed capture rig</b><span class="detail">same lighting, same camera angle and distance you'll use in the actual kiosk tray — consistency here matters more than volume.</span></li>
+        <li><b>Source real graded samples, not just "a bag of dal"</b><span class="detail">get physical samples of each quality grade from your supplier or a wholesale mandi contact — you cannot photograph a quality difference you don't have in hand.</span></li>
+        <li><b>Shoot 100&#8211;300 images per variety/grade</b><span class="detail">vary fill level (empty tray → full), natural lighting drift across the day, and loose-pile arrangement.</span></li>
+        <li><b>Log the density number alongside every shot</b><span class="detail">weight ÷ estimated tray-fill volume — this is training data for the numeric feature, not just the image.</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-top"><h3><span class="badge t3">Tier 3</span> Fruits &amp; vegetables</h3></div>
+      <ol class="steps">
+        <li><b>Capture across a freshness timeline</b><span class="detail">the same batch photographed on day 1, 3 and 5 — produce genuinely looks different as it ages, and the model needs to see that range.</span></li>
+        <li><b>Shoot multiple specimens, not one "reference" item</b><span class="detail">30&#8211;50 images per type across natural size and ripeness variation — a single perfect photo of one tomato won't generalize.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="public">
+    <div class="section-head"><span class="section-num">03</span><h2>Don't start from zero</h2></div>
+    <p>Two different kinds of head start, for two different tiers:</p>
+    <ul class="plain">
+      <li><strong>The backbone itself:</strong> start from an ImageNet-pretrained MobileNetV4 (or similar), not a randomly initialized network. You're fine-tuning an existing visual understanding, not teaching a model to see from scratch — that's what makes a few hundred images per category realistic instead of needing millions.</li>
+      <li><strong>Produce specifically:</strong> public datasets exist (Fruits-360, VegFru, and similar) and can pretrain the produce-recognition head before you fine-tune on your own photos. They skew Western, though — okra, drumstick, bitter gourd and other India-specific produce will need your own collection regardless.</li>
+      <li><strong>Rice/dal/masala varieties and quality grades:</strong> there isn't a strong public dataset for this — which is exactly why it's a real moat. No shortcut here; this is the collection work in Section 02 that only you're doing.</li>
+    </ul>
+  </section>
+
+  <section id="method">
+    <div class="section-head"><span class="section-num">04</span><h2>Train for "how similar," not "which class"</h2></div>
+    <p>The training method is what actually delivers your "no retraining, 30-second onboarding" promise — and it's not a standard image classifier. A classifier bakes in a fixed list of SKUs; add one and you have to retrain. Instead, fine-tune the embedding model with <strong>metric learning</strong> (triplet or contrastive loss): it learns a general sense of "how visually similar are these two items," and a new SKU is just a new point in that space — no retraining, ever.</p>
+    <ol class="steps">
+      <li><b>Build training triplets</b><span class="detail">anchor photo, a positive (same SKU/variety), and a negative (a different one).</span></li>
+      <li><b>Make the negatives hard on purpose</b><span class="detail">explicitly pair Basmati against Sona Masoori, whole toor dal against broken toor dal — the confusions you actually care about, not random unrelated items.</span></li>
+      <li><b>Fine-tune the backbone against this triplet objective</b><span class="detail">on the labeled Tier 2/3 dataset from Section 02.</span></li>
+      <li><b>Re-populate the FAISS reference index from the new embeddings</b><span class="detail">this is the only "onboarding-side" step that changes — the model itself is done.</span></li>
+    </ol>
+  </section>
+
+  <section id="grades">
+    <div class="section-head"><span class="section-num">05</span><h2>The honest hard part: dal quality grades</h2></div>
+    <p>Telling toor dal from moong dal is a variety problem — hard, but solvable with the approach above. Telling <em>premium</em> toor dal from <em>standard</em> toor dal is a grading problem, and it's genuinely harder: the visual differences (broken-grain %, color uniformity, dust) are subtler than variety differences, and a wide top-down tray shot may not resolve them well.</p>
+    <div class="callout warn"><span class="label">Recommendation</span>Don't ask the camera to certify grain quality from a checkout-distance photo alone. Instead, tie the quality grade to <em>which bin or hopper</em> the store loaded — when staff restock, they declare "this hopper is Grade A toor dal" once; vision only needs to confirm "this is toor dal" (a variety problem it's good at), and the system trusts the declared grade for whatever's currently in that hopper. Treat pure vision-based grading as a stretch goal to chase after launch, not a launch requirement.</div>
+  </section>
+
+  <section id="infra">
+    <div class="section-head"><span class="section-num">06</span><h2>Where the training actually runs</h2></div>
+    <ol class="steps">
+      <li><b>Now — Mac M4 via PyTorch + MPS</b><span class="detail">your datasets are hundreds to low-thousands of images per category; M4 unified memory handles this fine, no cloud GPU needed yet.</span></li>
+      <li><b>Later — a rented cloud GPU (A10/A100-class)</b><span class="detail">once real pilot data pushes your dataset into the tens of thousands of images, for faster iteration. Not needed for the initial build.</span></li>
+      <li><b>Always — re-validate accuracy after RKNN INT8 quantization</b><span class="detail">a model that's 96% accurate in PyTorch on the M4 is not guaranteed to still be 96% accurate after quantization on the real RK3588 board. Check both, every time, per the Track B gate in the build roadmap.</span></li>
+    </ol>
+  </section>
+
+  <section id="eval">
+    <div class="section-head"><span class="section-num">07</span><h2>What "good enough" looks like, per tier</h2></div>
+    <div class="tbl-wrap">
+      <table>
+        <caption>Target accuracy before calling a tier launch-ready</caption>
+        <thead><tr><th>Tier</th><th>Target</th><th>Fallback for the rest</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge t1">Tier 1</span> Packaged</td><td class="tag">≥99% top-1</td><td>Should rarely be needed — packaging is distinctive</td></tr>
+          <tr><td><span class="badge t2">Tier 2</span> Variety (rice/dal/masala)</td><td class="tag">≥95% top-1</td><td>Show top-2 candidates on the touchscreen for a 1-tap confirm</td></tr>
+          <tr><td><span class="badge t2">Tier 2</span> Quality grade</td><td class="tag">≥85% (or hopper-declared)</td><td>Defer to declared hopper grade, per Section 05</td></tr>
+          <tr><td><span class="badge t3">Tier 3</span> Produce</td><td class="tag">≥97% category-level</td><td>Touchscreen confirm for the ambiguous tail</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout info"><span class="label">Why a touchscreen fallback, not 100% accuracy</span>Forcing every tier to near-100% before launch is how this project stalls. A low-confidence item showing its top two guesses for a one-tap confirm keeps the customer moving in under a second — genuinely faster than chasing the last few points of model accuracy, and it's what grab-and-go systems elsewhere do for exactly this reason.</div>
+  </section>
+
+  <section id="loop">
+    <div class="section-head"><span class="section-num">08</span><h2>The loop that gets you the rest of the way</h2></div>
+    <p>You will not pre-collect every Indian grocery item before launch, and you don't need to — the model keeps learning from real store use if you wire the feedback path in from day one.</p>
+    <figure>
+      <div class="frame">
+        <svg viewBox="0 0 940 220" role="img" aria-label="Cycle diagram: collect data, label it, fine-tune the model with triplet loss, quantize and validate on the real RK3588 board, deploy over the air, and use in the live store — where low-confidence events and touchscreen corrections feed back into data collection, closing the loop.">
+          <defs>
+            <marker id="arrowL" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+          <g stroke="currentColor" stroke-width="1" fill="none">
+            <rect x="20" y="60" width="130" height="60" rx="3"></rect>
+            <rect x="196" y="60" width="130" height="60" rx="3"></rect>
+            <rect x="372" y="60" width="130" height="60" rx="3"></rect>
+            <rect x="548" y="60" width="150" height="60" rx="3"></rect>
+            <rect x="744" y="60" width="130" height="60" rx="3"></rect>
+
+            <line x1="150" y1="90" x2="194" y2="90" marker-end="url(#arrowL)"></line>
+            <line x1="326" y1="90" x2="370" y2="90" marker-end="url(#arrowL)"></line>
+            <line x1="502" y1="90" x2="546" y2="90" marker-end="url(#arrowL)"></line>
+            <line x1="698" y1="90" x2="742" y2="90" marker-end="url(#arrowL)"></line>
+
+            <path class="accent-stroke" d="M809,120 C 809,190 60,190 60,122" marker-end="url(#arrowL)"></path>
+          </g>
+          <text x="85" y="85" text-anchor="middle" class="box-lbl">Collect</text>
+          <text x="85" y="100" text-anchor="middle" class="sub-lbl">rig photos</text>
+          <text x="261" y="85" text-anchor="middle" class="box-lbl">Label</text>
+          <text x="261" y="100" text-anchor="middle" class="sub-lbl">SKU + grade tags</text>
+          <text x="437" y="85" text-anchor="middle" class="box-lbl">Fine-tune</text>
+          <text x="437" y="100" text-anchor="middle" class="sub-lbl">triplet loss, M4</text>
+          <text x="623" y="85" text-anchor="middle" class="box-lbl">Quantize + validate</text>
+          <text x="623" y="100" text-anchor="middle" class="sub-lbl">RKNN on RK3588</text>
+          <text x="809" y="85" text-anchor="middle" class="box-lbl">Deploy</text>
+          <text x="809" y="100" text-anchor="middle" class="sub-lbl">OTA to fleet</text>
+          <text x="437" y="200" text-anchor="middle" class="lbl">low-confidence events + touchscreen corrections flow back into Collect</text>
+        </svg>
+      </div>
+      <figcaption>Fig 1 — every low-confidence or corrected checkout becomes tomorrow's training data, closing the loop without a dedicated re-collection trip.</figcaption>
+    </figure>
+    <p class="muted">Practically: tag every transaction as auto-confirmed or customer-corrected in the same event log your analytics already use. A corrected item is a free, real-world labeled example — periodically (monthly is reasonable to start) pull those into the next fine-tuning run.</p>
+  </section>
+
+  <section id="scope">
+    <div class="section-head"><span class="section-num">09</span><h2>A realistic order to actually do this in</h2></div>
+    <p>"All Indian products" as a day-one training target would stall the pilot for months. Scope it in waves instead — the loop in Section 08 is what gets you to full coverage, not a single upfront data-collection marathon.</p>
+    <div class="tbl-wrap">
+      <table>
+        <caption>Suggested phasing</caption>
+        <thead><tr><th>Phase</th><th>Covers</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Top 50&#8211;80 SKUs by expected sales volume, across all three tiers — enough for a believable pilot</td><td>Alongside Track A/B of the build roadmap</td></tr>
+          <tr><td>2</td><td>Full rice/dal/masala variety + grade set you actually stock</td><td>Before scaling past the first pilot store</td></tr>
+          <tr><td>3</td><td>Everything else, via the feedback loop above</td><td>Continuous, post-launch</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Pick the Phase 1 list with whoever owns merchandising — the 50&#8211;80 items customers actually buy most, deliberately including a couple of your hardest lookalike pairs (a rice variety pair, a dal grade pair) so the pilot proves the hard case, not just the easy 80%.</p>
+  </section>
+
+  <footer>
+    HandsOffLabs · AutoDock &amp; Pack — model training plan · companion to the System Explainer and Build Roadmap
+  </footer>
+
+</div>
